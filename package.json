@@ -3,11 +3,11 @@
   "displayName": "VSTest Tools Framework",
   "description": "A Visual Studio Code Extension that implements the VSTest frameworks",
   "version": "0.0.1",
-  "publisher": "Gabriel",
+  "publisher": "gfrancischini",
   "icon": "resources/icon/testingicon.png",
   "repository": {
     "type": "git",
-    "url": "https://github.com/gfrancischini/vscode-test-tools-framework"
+    "url": "https://github.com/gfrancischini/vscode-vstest-framework"
   },
   "engines": {
     "vscode": "^1.13.0"
