@@ -148,14 +148,6 @@
     "@types/mocha": "^2.2.32",
     "@types/node": "^6.0.73",
     "amd-loader": "0.0.8",
-    "binutils": "^0.1.0",
-    "binutils-hiperf": "^0.1.0",
-    "bluebird": "^3.3.5",
-    "escape-regexp": "0.0.1",
-    "fs-extra": "^3.0.1",
-    "glob": "^7.1.2",
-    "jsonc-parser": "^0.4.2",
-    "mocha": "^2.3.3",
     "typescript-collections": "^1.2.3"
   }
 }

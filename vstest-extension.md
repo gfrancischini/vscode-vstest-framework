@@ -1,15 +1,3 @@
-# WORK IN PROGRESS 
-
-# vscode vsTest Tools
-
-
-
-Discover all tests, Runs specific tests, Inspect result, Debug, Go To Test Definition.
-
-![Alt Text](resources/functionalities.gif)
-
-## Features
-
 ## Run tests in Test Explorer
 
 When the extension is enabled it will automatically open the Test Explorer. The discovered test will appear on the windows like on the image below
@@ -53,31 +41,3 @@ To display the source code for a test method in the Visual Studio Code editor yo
 
 ## Group and filter the test list
 Group and filter is not supported yet.
-
-
-## Requirements
-
-To run Mocha test you must install Mocha
-You must install [Mocha](https://mochajs.org/#installation)
-
-To run .Net Core Test you must install .Net Core 2.0
-You must install [.Net Core](https://mochajs.org/#installation)
-
-### Configure the Settings:
-
-
-
-## Extension Settings
-
-
-## TODO
-
-
-## Known Issues
-
-Alpha Release
-
-## Release Notes
-
-Users appreciate release notes as you update your extension.
-

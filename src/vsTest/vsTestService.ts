@@ -120,7 +120,7 @@ export class VSTestService {
      * Discover the files in the given directory
      * @param directory The directory path do discvery the tests
      */
-    public discoverTests(directory: string): Promise<VSTestProtocol.TestDiscoveryResult> {
+    public discoveryTests(directory: string): Promise<VSTestProtocol.TestDiscoveryResult> {
         return new Promise((resolve, reject) => {
             try {
                 const fileTestList = this.listAllFilesInTestFolder(directory);
@@ -128,7 +128,7 @@ export class VSTestService {
                     resolve(null);
                     return;
                 }
-                this.session.discoverTests(fileTestList);
+                this.session.discoveryTests(fileTestList);
 
                 this.session.onDidTestDiscoveryCompleted((testDiscoveryResults) => {
                     resolve(testDiscoveryResults);

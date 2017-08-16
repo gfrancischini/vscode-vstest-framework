@@ -1,6 +1,9 @@
 import Event, { Emitter } from "./base/common/Event";
 import * as Collections from "typescript-collections";
 
+/**
+ * The enumerator that describe the test outcome results
+ */
 export enum TestOutcome {
     //None. Test case doesn't have an outcome.
     None = 0x0,
@@ -39,12 +42,7 @@ export class TestResult {
     errorStackTrace: string;
 
     /**
-     * TestResult.Outcome provides an integer specifying the result of a test case execution. Possible outcomes are:
-        0x0: None. Test case doesn't have an outcome.
-        0x1: Passed
-        0x2: Failed
-        0x3: Skipped
-        0x4: Not found. Test case was not found during execution.
+     * TestResult.Outcome provides an integer specifying the result of a test case execution.
      */
     outcome: TestOutcome;
 
@@ -63,7 +61,10 @@ export class TestResult {
      */
     plainObject: VSTestProtocol.TestResult;
 
-    public getDurationInMilliseconds() : number {
+    /**
+     * Return the test duration in milliseconds
+     */
+    public getDurationInMilliseconds(): number {
         return this.endTime.getTime() - this.startTime.getTime();
     }
 }
@@ -132,8 +133,10 @@ export class Test {
      */
     plainObject: VSTestProtocol.TestCase;
 
-    isRunning : boolean = false;
-    
+    /**
+     * Is the test running right now?
+     */
+    isRunning: boolean = false;
 
     /**
      * Return the unique test id
@@ -181,6 +184,9 @@ export class Test {
     }
 }
 
+/**
+ * Model responsible for holding the current test information
+ */
 export class TestModel {
     /**
      * Collection of tests discovered on the solution
@@ -191,6 +197,7 @@ export class TestModel {
      * Event notification emitted when test case change (new test, update)
      */
     private _onDidTestChanged: Emitter<Test>;
+
 
     public constructor() {
         this._onDidTestChanged = new Emitter<Test>();
@@ -216,9 +223,9 @@ export class TestModel {
         return tests;
     }
 
-     /**
-     * Return a array list of all passed tests
-     */
+    /**
+    * Return a array list of all passed tests
+    */
     public getPassedTests(): Array<Test> {
         const tests = this.getTests().filter((test: Test) => {
             if (test.result && test.result.outcome === TestOutcome.Passed) {
@@ -229,9 +236,9 @@ export class TestModel {
         return tests;
     }
 
-     /**
-     * Return a array list of all not run tests
-     */
+    /**
+    * Return a array list of all not run tests
+    */
     public getNotRunTests(): Array<Test> {
         const tests = this.getTests().filter((test: Test) => {
             if (!test.result || test.result.outcome === TestOutcome.None) {
@@ -355,7 +362,7 @@ export class TestModel {
         this._onDidTestChanged.fire(newTest);
     }
 
-    public updateTestState(test: VSTestProtocol.TestCase) : void {
+    public updateTestState(test: VSTestProtocol.TestCase): void {
         const newTest: Test = this.createTest(test);
         newTest.isRunning = true;
         this.tests.setValue(newTest.id, newTest);

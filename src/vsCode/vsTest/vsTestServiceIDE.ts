@@ -10,11 +10,11 @@ export class VSTestServiceIDE extends VSTestService {
      * Discover the files in the given directory
      * @param directory The directory path do discvery the tests
      */
-    public discoverTests(directory: string) {
+    public discoveryTests(directory: string) {
         return <Promise<any>>vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: "Test Adapter" }, progress => {
             progress.report({ message: "Discovering Tests" });
             return new Promise((resolve, reject) => {
-                super.discoverTests(directory).then((result) => {
+                super.discoveryTests(directory).then((result) => {
                     resolve();
                 }).catch((error) => {
                     reject();

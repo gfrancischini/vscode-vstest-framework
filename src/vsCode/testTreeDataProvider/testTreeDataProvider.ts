@@ -106,7 +106,7 @@ export class TestTreeDataProvider implements vscode.TreeDataProvider<TestTreeTyp
         this.testService = TestManager.getInstance().getTestService();
 
         this.testService.onDidTestServiceStatusChanged(() => {
-            this.testService.discoverTests(vscode.workspace.rootPath).then((result) => {
+            this.testService.discoveryTests(vscode.workspace.rootPath).then((result) => {
                 if (!result) {
                     this.anyTestFound = false;
                     this._onDidChangeTreeData.fire();
