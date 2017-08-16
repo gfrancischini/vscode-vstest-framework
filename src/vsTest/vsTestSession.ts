@@ -129,7 +129,7 @@ export class VSTestSession extends RawProtocolSession {
         const runTestsRequest: VSTestProtocol.RunTestsRequest = {
             MessageType: "TestExecution.RunAllWithDefaultHost",
             Payload: {
-                Sources: sources,
+                Sources: null,
                 TestCases: tests,
                 RunSettings: null,
                 KeepAlive: false,

@@ -28,6 +28,11 @@
           "group": "navigation"
         },
         {
+          "command": "vstest.explorer.groupBy",
+          "when": "view == vstest.explorer.vsTestTree",
+          "group": "navigation"
+        },
+        {
           "command": "vstest.execution.runAll",
           "when": "view == vstest.explorer.vsTestTree",
           "group": "hidden"
@@ -40,10 +45,10 @@
       ],
       "view/item/context": [
         {
-          "command": "vstest.execution.run"
+          "command": "vstest.execution.runSelected"
         },
         {
-          "command": "vstest.execution.debug"
+          "command": "vstest.execution.debugSelected"
         },
         {
           "command": "vstest.explorer.open"
@@ -69,22 +74,14 @@
     },
     "commands": [
       {
-        "command": "vstest.execution.run",
-        "title": "Run Selected Test"
-      },
-      {
         "command": "vstest.execution.runSelected",
-        "title": "Run",
+        "title": "Run Selected Test",
         "icon": "resources/light/play_button.svg"
       },
       {
         "command": "vstest.execution.runAll",
         "title": "Run All Tests",
         "icon": "resources/light/play_all_button.svg"
-      },
-      {
-        "command": "vstest.execution.debug",
-        "title": "Debug Selected Test"
       },
       {
         "command": "vstest.execution.debugSelected",
@@ -121,6 +118,11 @@
       {
         "command": "vstest.explorer.restart",
         "title": "Restart Test Explorer"
+      },
+      {
+        "command": "vstest.explorer.groupBy",
+        "title": "Group Test By",
+        "icon": "resources/light/group.svg"
       }
     ],
     "views": {

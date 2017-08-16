@@ -8,7 +8,7 @@ test.startTestRunner().then(() => {
     //test.discoverTests();
     let path = "C:\\Users\\gfrancischini\\Desktop\\vstest-rel-15.3-rtm\\test\\testhost.UnitTests\\bin\\Debug";
     //path = "C:\\Users\\gfrancischini\\source\\repos\\vscodecsharp";
-    test.discoverTests(path).then(() => {
+    test.discoveryTests(path).then(() => {
         test.runTests(test.getModel().getTests());
     });
 });

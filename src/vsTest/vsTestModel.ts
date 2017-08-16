@@ -250,6 +250,45 @@ export class TestModel {
     }
 
     /**
+    * Return a array list of all slow tests
+    */
+    public getSlowTests(): Array<Test> {
+        const tests = this.getTests().filter((test: Test) => {
+            if (test.result && test.result.getDurationInMilliseconds() > 1000) {
+                return true;
+            }
+            return false;
+        });
+        return tests;
+    }
+
+    /**
+    * Return a array list of all slow tests
+    */
+    public getMediumTests(): Array<Test> {
+        const tests = this.getTests().filter((test: Test) => {
+            if (test.result && (test.result.getDurationInMilliseconds() >= 100 && test.result.getDurationInMilliseconds() <= 1000)) {
+                return true;
+            }
+            return false;
+        });
+        return tests;
+    }
+
+    /**
+    * Return a array list of all slow tests
+    */
+    public getFastTests(): Array<Test> {
+        const tests = this.getTests().filter((test: Test) => {
+            if (test.result && test.result.getDurationInMilliseconds() < 100) {
+                return true;
+            }
+            return false;
+        });
+        return tests;
+    }
+
+    /**
      * Register a new listeener for the test changed
      */
     public get onDidTestChanged(): Event<Test> {

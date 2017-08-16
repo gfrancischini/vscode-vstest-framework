@@ -4,6 +4,7 @@ import * as Collections from "typescript-collections";
 import { TestManager } from "../vsTest/vsTestManager";
 import { TestModel, Test, TestResult, TestOutcome } from "../../vsTest/vsTestModel"
 import { VSTestServiceIDE } from "../vsTest/vsTestServiceIDE"
+import { GroupByFilter, GroupByQuickPickItemType } from "./groupByFilter"
 export function RegisterVSTestTreeProvider(context: vscode.ExtensionContext) {
     let testTreeDataProvider: TestTreeDataProvider;
     testTreeDataProvider = new TestTreeDataProvider(context);
@@ -69,7 +70,7 @@ export class TestTreeDataProvider implements vscode.TreeDataProvider<TestTreeTyp
     public _onDidChangeTreeData: vscode.EventEmitter<TestTreeType | null> = new vscode.EventEmitter<TestTreeType | null>();
     readonly onDidChangeTreeData: vscode.Event<TestTreeType | null> = this._onDidChangeTreeData.event;
 
-    
+    private groupByFilter: GroupByFilter = new GroupByFilter();
 
     private testService: VSTestServiceIDE;
 
@@ -85,15 +86,19 @@ export class TestTreeDataProvider implements vscode.TreeDataProvider<TestTreeTyp
         context.subscriptions.push(disposable);
 
         const runCommand = vscode.commands.registerCommand("vstest.execution.runSelected",
-            test => this.runTests());
+            () => this.runTests());
         context.subscriptions.push(runCommand);
 
         const debugCommand = vscode.commands.registerCommand("vstest.execution.debugSelected",
-            test => this.runTests(true));
+            () => this.runTests(true));
         context.subscriptions.push(debugCommand);
 
         const restartExplorerCommand = vscode.commands.registerCommand("vstest.explorer.restart",
-            test => TestManager.getInstance().restart());
+            () => TestManager.getInstance().restart());
+        context.subscriptions.push(restartExplorerCommand);
+
+        const groupByExplorerCommand = vscode.commands.registerCommand("vstest.explorer.groupBy",
+            () => this.selectGroupBy());
         context.subscriptions.push(restartExplorerCommand);
 
         const showTestResult = vscode.commands.registerCommand("vstest.explorer.showResult", event => this.showTestResult(event));
@@ -124,8 +129,14 @@ export class TestTreeDataProvider implements vscode.TreeDataProvider<TestTreeTyp
     }
 
     private runTests(debuggingEnabled: boolean = false): void {
+        if (!this.selectedItem) {
+            vscode.window.showWarningMessage("You need to select a test or a test group first.");
+        }
         if (this.selectedItem instanceof Test) {
             this.testService.runTests([<Test>this.selectedItem], debuggingEnabled);
+        }
+        else if (this.selectedItem instanceof Label) {
+            this.testService.runTests((<Label>this.selectedItem).getChildren(), debuggingEnabled);
         }
     }
 
@@ -133,12 +144,22 @@ export class TestTreeDataProvider implements vscode.TreeDataProvider<TestTreeTyp
         this._onDidChangeTreeData.fire(test);
     }
 
+    private selectGroupBy() {
+        this.groupByFilter.show().then(() => {
+            this.refrehTestExplorer(null);
+        })
+
+    }
+
+    private getNoTestFound() {
+        const noTestFoundLabel: Label = new Label("No Test Found", TestOutcome.None, null);
+        return Promise.resolve([noTestFoundLabel]);
+    }
+
     private getTestsByOutcome() {
         if (!this.testService.getModel().getTests() || this.testService.getModel().getTests().length === 0) {
-            const noTestFoundLabel: Label = new Label("No Test Found", TestOutcome.None, null);
-            return Promise.resolve([noTestFoundLabel]);
+            return this.getNoTestFound();
         }
-
 
         return new Promise<Array<TestTreeType>>((resolve, reject) => {
             const outcomeArray = new Array<TestTreeType>();
@@ -169,12 +190,58 @@ export class TestTreeDataProvider implements vscode.TreeDataProvider<TestTreeTyp
         });
     }
 
+    private getTestsByDuration() {
+        if (!this.testService.getModel().getTests() || this.testService.getModel().getTests().length === 0) {
+            return this.getNoTestFound();
+        }
+
+        return new Promise<Array<TestTreeType>>((resolve, reject) => {
+            const outcomeArray = new Array<TestTreeType>();
+
+            const testModel: TestModel = this.testService.getModel();
+
+            const notRunTestsLabel: Label = new Label("Not Run Tests", TestOutcome.None, testModel.getNotRunTests());
+            const fastTestsLabel: Label = new Label("Fast < 100ms", TestOutcome.None, testModel.getFastTests());
+            const mediumTestsLabel: Label = new Label("Medium >= 100ms", TestOutcome.Failed, testModel.getMediumTests());
+            const slowTests: Label = new Label("Slow > 1sec", TestOutcome.Passed, testModel.getSlowTests());
+
+            this.testsAdditionalData.setValue(notRunTestsLabel.getId(), { collapsibleState: vscode.TreeItemCollapsibleState.Expanded });
+            this.testsAdditionalData.setValue(fastTestsLabel.getId(), { collapsibleState: vscode.TreeItemCollapsibleState.Expanded });
+            this.testsAdditionalData.setValue(mediumTestsLabel.getId(), { collapsibleState: vscode.TreeItemCollapsibleState.Expanded });
+            this.testsAdditionalData.setValue(slowTests.getId(), { collapsibleState: vscode.TreeItemCollapsibleState.Expanded });
+
+            // only add filters if there is children to display
+            if (notRunTestsLabel.getChildrenLenght() > 0) {
+                outcomeArray.push(notRunTestsLabel);
+            }
+            if (fastTestsLabel.getChildrenLenght() > 0) {
+                outcomeArray.push(fastTestsLabel);
+            }
+            if (mediumTestsLabel.getChildrenLenght() > 0) {
+                outcomeArray.push(mediumTestsLabel);
+            }
+            if (slowTests.getChildrenLenght() > 0) {
+                outcomeArray.push(slowTests);
+            }
+
+            resolve(outcomeArray);
+
+        });
+    }
+
     getChildren(test?: TestTreeType): Thenable<TestTreeType[]> {
         if (test) {
             return Promise.resolve(test.getChildren() ? test.getChildren() : []);
         }
         else {
-            return this.getTestsByOutcome();
+            switch (this.groupByFilter.getSelected().type) {
+                case GroupByQuickPickItemType.Class:
+                    break;
+                case GroupByQuickPickItemType.Outcome:
+                    return this.getTestsByOutcome();
+                case GroupByQuickPickItemType.Duration:
+                    return this.getTestsByDuration();
+            }
         }
     }
 
