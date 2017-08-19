@@ -6,9 +6,6 @@ import { RegisterTestDiscoveryCommands } from "./vsCode/commands/testDiscoveryCo
 
 
 export function activate(context: vscode.ExtensionContext): void {
-    // initilize the test manager
-    TestManager.initialize(context);
-
     RegisterTestExecutionCommands(context);
     RegisterTestDiscoveryCommands(context);
     RegisterVSTestTreeProvider(context);

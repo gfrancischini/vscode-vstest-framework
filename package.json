@@ -54,7 +54,7 @@
           "command": "vstest.explorer.open"
         },
         {
-          "command": "vstest.discovery.refresh"
+          "command": "vstest.explorer.refresh"
         },
         {
           "command": "vstest.explorer.showResult"
@@ -66,9 +66,22 @@
       "title": "Node Test Runner Configuration Properties.",
       "properties": {
         "vstest.dotnet": {
-          "default": "**/*Tests.dll",
           "description": "Glob pattern for search for test files.",
-          "type": "string"
+          "type": "object",
+          "properties": {
+            "testFiles": {
+              "type": "object",
+              "properties": [{
+                
+                "glob": {
+
+                },
+                "framework": {
+                  "type": "string"
+                }
+              }]
+            }
+          }
         }
       }
     },
@@ -96,18 +109,6 @@
         "title": "Stop Tests"
       },
       {
-        "command": "vstest.discovery.start",
-        "title": "Start Test Discovery"
-      },
-      {
-        "command": "vstest.discovery.stop",
-        "title": "Stop Test Discovery"
-      },
-      {
-        "command": "vstest.discovery.refresh",
-        "title": "Refresh Test"
-      },
-      {
         "command": "vstest.explorer.open",
         "title": "Open the selected Test"
       },
@@ -120,9 +121,17 @@
         "title": "Restart Test Explorer"
       },
       {
+        "command": "vstest.explorer.refresh",
+        "title": "Refresh Test Explorer"
+      },
+      {
         "command": "vstest.explorer.groupBy",
         "title": "Group Test By",
         "icon": "resources/light/group.svg"
+      },
+      {
+        "command": "vstest.explorer.initialize",
+        "title": "Initialize Test Explorer"
       }
     ],
     "views": {

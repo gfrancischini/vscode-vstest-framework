@@ -3,7 +3,9 @@ import { VSTestSession } from "./vsTestSession";
 import Event, { Emitter } from "./base/common/Event";
 import { IVSTestConfig } from "./vsTestConfig";
 const fs = require('fs');
-const glob = require("glob")
+const glob = require("glob");
+
+import { VSTestDotNetModel } from "../vsTestDotNet/vsTestDotNetModel";
 
 /**
  * VSTest.console status
@@ -27,20 +29,28 @@ export class VSTestService {
      */
     protected session: VSTestSession;
 
-    /**
-     * Current configuration
-     */
-    protected config: IVSTestConfig;
 
     /**
      * Event notification about service status changes
      */
     protected _onDidTestServiceStatusChanged: Emitter<VSTestServiceStatus>;
 
-    constructor(config : IVSTestConfig) {
-        this.testModel = new TestModel();
+    constructor(adapterName: string, config: IVSTestConfig) {
+
+        this.updateConfiguration(adapterName, config);
+
         this._onDidTestServiceStatusChanged = new Emitter<VSTestServiceStatus>();
-        this.config = config;
+
+    }
+
+    public updateConfiguration(adapterName: string, config: IVSTestConfig) {
+        //TODO add list of adapter supported
+        if (adapterName == "dotnet") {
+            this.testModel = new VSTestDotNetModel(config);
+        }
+        else {
+            this.testModel = new TestModel(config);
+        }
     }
 
     /**
@@ -103,18 +113,7 @@ export class VSTestService {
         });
     }
 
-    /**
-     * Retrieve all file in the directory that match the glob configuration
-     * @param directory The base directory to lookup for the files
-     */
-    private listAllFilesInTestFolder(directory: string): Array<string> {
-        let globPattern = `${directory}/**/*Tests.dll`;
-        if(this.config.glob) {
-            globPattern = `${directory}/${this.config.glob}`;
-        }
-        const fileTestList = glob.sync(globPattern, null);
-        return fileTestList;
-    }
+
 
     /**
      * Discover the files in the given directory
@@ -123,12 +122,15 @@ export class VSTestService {
     public discoveryTests(directory: string): Promise<VSTestProtocol.TestDiscoveryResult> {
         return new Promise((resolve, reject) => {
             try {
-                const fileTestList = this.listAllFilesInTestFolder(directory);
-                if(fileTestList.length === 0) {
+                this.getModel().reset();
+
+                const sourcesToDiscovery = this.getModel().getAllFilesInTestFolder(directory);
+                if (sourcesToDiscovery[0].files.length === 0) {
                     resolve(null);
                     return;
                 }
-                this.session.discoveryTests(fileTestList);
+
+                this.session.discoveryTests(sourcesToDiscovery[0].files, sourcesToDiscovery[0].runSettings);
 
                 this.session.onDidTestDiscoveryCompleted((testDiscoveryResults) => {
                     resolve(testDiscoveryResults);
@@ -153,6 +155,7 @@ export class VSTestService {
         }
         return new Promise((resolve, reject) => {
             try {
+                this.testModel.incrementRunTestSessionId();
                 const testCases = new Array<any>();
                 let sources = new Array<string>();
                 tests.forEach((test) => {

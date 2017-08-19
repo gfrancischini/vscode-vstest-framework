@@ -18,8 +18,6 @@ export class VSTestSession extends RawProtocolSession {
     private _onDidTestExecutionCompleted: Emitter<VSTestProtocol.TestRunCompleteResult>;
     private _onDidTestSessionMessageReceived: Emitter<VSTestProtocol.MessageResult>;
 
-    DefaultRunSettings: string = "<RunSettings><TargetFrameworkVersion>.NETCoreApp,Version=v1.0</TargetFrameworkVersion></RunSettings>";
-
     constructor() {
         super();
         this._onDidTestSessionConnected = new Emitter<void>();
@@ -94,10 +92,11 @@ export class VSTestSession extends RawProtocolSession {
         const portNumber = 12345; //TODO - get free port number
         const port = `/port:${portNumber}`;
         const diag = `/Diag:C:\\Users\\gfrancischini\\Downloads\\Log.txt`;
-        
+
         return new Promise<void>((resolve, reject) => {
             this.launchServer({ command: "dotnet", args: [lib, processId, port, diag] }, portNumber).then(() => {
                 this.onDidTestSessionConnected(() => {
+                    this.versionRequest();
                     this.initializeExtensions();
                     resolve();
                 });
@@ -144,15 +143,36 @@ export class VSTestSession extends RawProtocolSession {
      * Discovery the test on the underline sources
      * @param sources 
      */
-    public discoveryTests(sources: Array<string>) {
+    public discoveryTests(sources: Array<string>, runSettings: string) {
+        const message = sources.reduce((previous, current) => {
+            return `${previous}${current}\r\n`;
+        }, "Test Runner will submit the following test files to discovery:\r\n")
+
+        this._onDidTestSessionMessageReceived.fire({
+            Message: message,
+            MessageLevel: 0
+        });
+
         var discoveryRequest: VSTestProtocol.StartDiscoveryRequest = {
             MessageType: "TestDiscovery.Start",
             Payload: {
                 Sources: sources,
-                RunSettings: this.DefaultRunSettings
+                RunSettings: runSettings
             }
         }
         this.sendProtocolMessage(discoveryRequest);
+    }
+
+    /**
+     * Send a initialize extensions request to the test host
+     */
+    public versionRequest() {
+        var versionRequest: VSTestProtocol.VersionRequest = {
+            MessageType: "ProtocolVersion",
+            Payload: 1
+        };
+
+        this.sendProtocolMessage(versionRequest);
     }
 }
 

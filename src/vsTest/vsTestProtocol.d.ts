@@ -34,7 +34,7 @@ declare module VSTestProtocol {
             Attribute: string,
             ValueType: string,
         },
-        Value: string,
+        Value: Object,
     }
 
     export interface TestCase {
@@ -124,5 +124,15 @@ declare module VSTestProtocol {
          * List of paths of extensions
          */
         Payload: Array<string>,
+    }
+
+    export interface VersionRequest extends Request {
+        //"MessageType": "ProtocolVersion",
+        Payload: number
+    }
+
+    export interface VersionResponse extends Response {
+        //"MessageType": "ProtocolVersion",
+        Payload: number,
     }
 }

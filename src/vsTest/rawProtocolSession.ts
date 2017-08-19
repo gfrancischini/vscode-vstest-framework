@@ -21,6 +21,8 @@ export abstract class RawProtocolSession {
 
     private outputStream: stream.Writable;
     private rawData: Buffer;
+    
+    private stdServer : net.Server;
 
     private binaryReader: BinaryReader;
     constructor() {
@@ -30,7 +32,7 @@ export abstract class RawProtocolSession {
 
     protected createSocketServer(port : number) {
         // Begin listening to stderr pipe
-        let stdServer = net.createServer((socket) => {
+        this.stdServer = net.createServer((socket) => {
             this.socket = socket;
             this.socket.on('data', (data) => {
                 this.binaryReader.append(data);
@@ -43,8 +45,7 @@ export abstract class RawProtocolSession {
                 } while (msg);
             });
         });
-        stdServer.listen(port);
-
+        this.stdServer.listen(port);
     }
 
     protected abstract onProtocolMessage(message: VSTestProtocol.ProtocolMessage): void;
@@ -95,6 +96,8 @@ export abstract class RawProtocolSession {
             this.cachedInitServer = null;
         }
 
+        
+
         //this.onEvent({ event: "exit", type: "event", seq: 0 });
         if (!this.serverProcess) {
             return TPromise.as(null);
@@ -113,7 +116,9 @@ export abstract class RawProtocolSession {
                         return e(err);
                     }
                 });
-                killer.on("exit", c);
+                killer.on("exit",() => {
+                    this.stdServer.close(c);
+                });
                 killer.on("error", e);
             });
         }/* else {

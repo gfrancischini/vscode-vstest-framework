@@ -3,8 +3,12 @@ import { TestModel, Test } from "../../vsTest/vsTestModel";
 import { VSTestSession } from "../../vsTest/vsTestSession";
 import Event, { Emitter } from "../../vsTest/base/common/Event";
 import { VSTestService } from "../../vsTest/vsTestService";
-
+import { getConfigurationForAdatper, getCurrentAdapterName } from "../config";
 export class VSTestServiceIDE extends VSTestService {
+
+    constructor() {
+        super(getCurrentAdapterName(),getConfigurationForAdatper());
+    }
 
     /**
      * Discover the files in the given directory
@@ -15,9 +19,9 @@ export class VSTestServiceIDE extends VSTestService {
             progress.report({ message: "Discovering Tests" });
             return new Promise((resolve, reject) => {
                 super.discoveryTests(directory).then((result) => {
-                    resolve();
+                    resolve(result);
                 }).catch((error) => {
-                    reject();
+                    reject(null);
                 });
             });
         });

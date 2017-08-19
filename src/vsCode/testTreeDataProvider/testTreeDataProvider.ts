@@ -4,7 +4,10 @@ import * as Collections from "typescript-collections";
 import { TestManager } from "../vsTest/vsTestManager";
 import { TestModel, Test, TestResult, TestOutcome } from "../../vsTest/vsTestModel"
 import { VSTestServiceIDE } from "../vsTest/vsTestServiceIDE"
+import { VSTestServiceStatus } from "../../vsTest/vsTestService"
+import { getConfigurationForAdatper, getCurrentAdapterName } from "../config";
 import { GroupByFilter, GroupByQuickPickItemType } from "./groupByFilter"
+
 export function RegisterVSTestTreeProvider(context: vscode.ExtensionContext) {
     let testTreeDataProvider: TestTreeDataProvider;
     testTreeDataProvider = new TestTreeDataProvider(context);
@@ -78,7 +81,9 @@ export class TestTreeDataProvider implements vscode.TreeDataProvider<TestTreeTyp
 
     private selectedItem: TestTreeType = null;
 
-    private anyTestFound: boolean = false;
+
+
+    private isTestExplorerInitialized = false;
 
     constructor(private context: vscode.ExtensionContext) {
 
@@ -86,58 +91,126 @@ export class TestTreeDataProvider implements vscode.TreeDataProvider<TestTreeTyp
         context.subscriptions.push(disposable);
 
         const runCommand = vscode.commands.registerCommand("vstest.execution.runSelected",
-            () => this.runTests());
+            (item) => {
+                if (item) {
+                    this.runTests(item);
+                }
+                else {
+                    this.runTests(this.selectedItem);
+                }
+            });
         context.subscriptions.push(runCommand);
 
         const debugCommand = vscode.commands.registerCommand("vstest.execution.debugSelected",
-            () => this.runTests(true));
+            (item) => {
+                if (item) {
+                    this.runTests(item, true);
+                }
+                else {
+                    this.runTests(this.selectedItem, true);
+                }
+            });
         context.subscriptions.push(debugCommand);
 
         const restartExplorerCommand = vscode.commands.registerCommand("vstest.explorer.restart",
-            () => TestManager.getInstance().restart());
+            () => this.restart());
         context.subscriptions.push(restartExplorerCommand);
 
         const groupByExplorerCommand = vscode.commands.registerCommand("vstest.explorer.groupBy",
             () => this.selectGroupBy());
-        context.subscriptions.push(restartExplorerCommand);
+        context.subscriptions.push(groupByExplorerCommand);
+
+        const refreshExplorerCommand = vscode.commands.registerCommand("vstest.explorer.refresh",
+            () => this.discoveryTests());
+        context.subscriptions.push(refreshExplorerCommand);
+
+        const runAllTestCommand = vscode.commands.registerCommand("vstest.execution.runAll",
+            () => this.runAllTests());
+        context.subscriptions.push(runAllTestCommand);
 
         const showTestResult = vscode.commands.registerCommand("vstest.explorer.showResult", event => this.showTestResult(event));
         context.subscriptions.push(showTestResult);
 
-        this.initialize();
+        const initializeTestExplorer = vscode.commands.registerCommand("vstest.explorer.initialize", event => this.initialize());
+        context.subscriptions.push(showTestResult);
+
+        vscode.workspace.onDidChangeConfiguration(() => {
+            this.testService.updateConfiguration(getCurrentAdapterName(),getConfigurationForAdatper());
+            this.registerTestModelListeners();
+            this.refrehTestExplorer(null);
+            this.discoveryTests();
+        });
     }
 
-    private initialize() {
-        this.testService = TestManager.getInstance().getTestService();
-
-        this.testService.onDidTestServiceStatusChanged(() => {
-            this.testService.discoveryTests(vscode.workspace.rootPath).then((result) => {
-                if (!result) {
-                    this.anyTestFound = false;
-                    this._onDidChangeTreeData.fire();
-                }
-                else {
-                    this.anyTestFound = true;
-                }
-            })
-        });
-
-        this.testService.getModel().onDidTestChanged((test: Test) => {
-            this._onDidChangeTreeData.fire();
+    private restart(): void {
+        this.isTestExplorerInitialized = false;
+        TestManager.getInstance().restart().then(() => {
+            this.registerTestServiceListeners();
+            this.registerTestModelListeners();
             this.refrehTestExplorer(null);
         });
     }
 
-    private runTests(debuggingEnabled: boolean = false): void {
-        if (!this.selectedItem) {
+    private discoveryTests() {
+        this.testService.discoveryTests(vscode.workspace.rootPath).then((result) => {
+            if (result) {
+                this._onDidChangeTreeData.fire();
+            }
+            else {
+            }
+        });
+    }
+
+    private registerTestServiceListeners() {
+        this.testService = TestManager.getInstance().getTestService();
+
+        this.testService.onDidTestServiceStatusChanged((status) => {
+            if (status == VSTestServiceStatus.Connected) {
+                this.isTestExplorerInitialized = true;
+                this._onDidChangeTreeData.fire();
+                this.discoveryTests();
+            }
+        });
+
+        
+    }
+
+    private registerTestModelListeners() {
+        this.testService.getModel().onDidTestChanged((test: Test) => {
+            this._onDidChangeTreeData.fire();
+            //this.refrehTestExplorer(null);
+        });
+    }
+
+    private initialize() {
+        // initilize the test manager
+        TestManager.initialize(this.context);
+
+        this.registerTestServiceListeners();
+        this.registerTestModelListeners();
+    }
+
+    private runTests(test: TestTreeType, debuggingEnabled: boolean = false): void {
+        if (!test) {
             vscode.window.showWarningMessage("You need to select a test or a test group first.");
         }
-        if (this.selectedItem instanceof Test) {
-            this.testService.runTests([<Test>this.selectedItem], debuggingEnabled);
+        if (test instanceof Test) {
+            this.testService.runTests([<Test>test], debuggingEnabled);
         }
-        else if (this.selectedItem instanceof Label) {
-            this.testService.runTests((<Label>this.selectedItem).getChildren(), debuggingEnabled);
+        else if (test instanceof Label) {
+            this.testService.runTests((<Label>test).getChildren(), debuggingEnabled);
         }
+    }
+
+    private runAllTests() {
+        if(this.isTestExplorerInitialized === false) {
+            vscode.window.showWarningMessage("You must initialize the test explore first");
+        }
+        const tests = this.testService.getModel().getTests()
+        if(tests.length == 0) {
+            vscode.window.showWarningMessage("There is no test to run");
+        }
+        this.testService.runTests(tests);
     }
 
     private refrehTestExplorer(test: Test) {
@@ -190,6 +263,11 @@ export class TestTreeDataProvider implements vscode.TreeDataProvider<TestTreeTyp
         });
     }
 
+    private getTestExplorerNotInitialized() {
+        const label: Label = new Label("Test Explorer is Not Initialized", TestOutcome.None, null);
+        return Promise.resolve([label]);
+    }
+
     private getTestsByDuration() {
         if (!this.testService.getModel().getTests() || this.testService.getModel().getTests().length === 0) {
             return this.getNoTestFound();
@@ -229,7 +307,11 @@ export class TestTreeDataProvider implements vscode.TreeDataProvider<TestTreeTyp
         });
     }
 
+
     getChildren(test?: TestTreeType): Thenable<TestTreeType[]> {
+        if (this.isTestExplorerInitialized === false) {
+            return this.getTestExplorerNotInitialized();
+        }
         if (test) {
             return Promise.resolve(test.getChildren() ? test.getChildren() : []);
         }
@@ -268,21 +350,25 @@ export class TestTreeDataProvider implements vscode.TreeDataProvider<TestTreeTyp
         }
 
         if (item instanceof Test) {
-            if (!item.getResult() && item.isRunning) {
+            if (item.isRunning) {
                 return Utils.getImageResource("progress.svg");
+            }
+            let appendStringIcon = "";
+            if(item.getResult() && item.getResult().sessionId != this.testService.getModel().getRunTestSessionId()){
+                appendStringIcon = "_previousExec";
             }
             const outcome = item.getResult() ? item.getResult().outcome : TestOutcome.None;
             switch (outcome) {
                 case TestOutcome.Failed:
-                    return Utils.getImageResource("error.svg");
+                    return Utils.getImageResource(`error${appendStringIcon}.svg`);
                 case TestOutcome.None:
-                    return Utils.getImageResource("exclamation.svg");
+                    return Utils.getImageResource(`exclamation${appendStringIcon}.svg`);
                 case TestOutcome.NotFound:
                     return Utils.getImageResource("interrogation.svg");
                 case TestOutcome.Passed:
-                    return Utils.getImageResource("checked.svg");
+                    return Utils.getImageResource(`checked${appendStringIcon}.svg`);
                 case TestOutcome.Skipped:
-                    return Utils.getImageResource("skipped.svg");
+                    return Utils.getImageResource(`skipped${appendStringIcon}.svg`);
             }
         }
         return Utils.getImageResource("interrogation.svg");

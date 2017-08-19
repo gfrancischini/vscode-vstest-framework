@@ -1,5 +1,7 @@
 import Event, { Emitter } from "./base/common/Event";
 import * as Collections from "typescript-collections";
+import { IVSTestConfig } from "./vsTestConfig";
+import { GlobSync } from "glob"
 
 /**
  * The enumerator that describe the test outcome results
@@ -60,6 +62,8 @@ export class TestResult {
      * The plain test result object
      */
     plainObject: VSTestProtocol.TestResult;
+
+    sessionId: number;
 
     /**
      * Return the test duration in milliseconds
@@ -198,9 +202,38 @@ export class TestModel {
      */
     private _onDidTestChanged: Emitter<Test>;
 
+    /**
+     * Current configuration
+     */
+    protected config: IVSTestConfig;
 
-    public constructor() {
+
+    protected runTestSessionId = 0;
+
+    protected defaultRunSettings: string = "<RunSettings><RunConfiguration><TargetFrameworkVersion>.NETCoreApp,Version=v1.0</TargetFrameworkVersion></RunConfiguration></RunSettings>";
+
+    public incrementRunTestSessionId() {
+        this.runTestSessionId++;
+    }
+
+    public getRunTestSessionId() {
+        return this.runTestSessionId;
+    }
+
+    public constructor(config: IVSTestConfig) {
         this._onDidTestChanged = new Emitter<Test>();
+
+        this.config = config;
+
+
+    }
+
+    protected getRunSettings() {
+        return this.defaultRunSettings;
+    }
+
+    public getConfig(): IVSTestConfig {
+        return this.config;
     }
 
     /**
@@ -302,7 +335,8 @@ export class TestModel {
     public updateTestResult(testResult: VSTestProtocol.TestResult) {
         const test = this.createTest(testResult.TestCase);
         test.result = this.createTestResult(testResult);
-
+        test.result.sessionId = this.runTestSessionId;
+        test.isRunning = false;
         this.tests.setValue(test.id, test);
         this._onDidTestChanged.fire(test);
     }
@@ -318,28 +352,28 @@ export class TestModel {
         testResult.Properties.forEach(properties => {
             switch (properties.Key.Id) {
                 case "TestResult.Outcome":
-                    newTestResult.outcome = parseInt(properties.Value, 10);
+                    newTestResult.outcome = parseInt(<string>properties.Value, 10);
                     break;
                 case "TestResult.ErrorMessage":
-                    newTestResult.errorMessage = properties.Value;
+                    newTestResult.errorMessage = <string>properties.Value;
                     break;
                 case "TestResult.ErrorStackTrace":
-                    newTestResult.errorStackTrace = properties.Value;
+                    newTestResult.errorStackTrace = <string>properties.Value;
                     break;
                 case "TestResult.DisplayName":
-                    newTestResult.displayName = properties.Value;
+                    newTestResult.displayName = <string>properties.Value;
                     break;
                 case "TestResult.ComputerName":
                     //newTestResult.computerName = properties.Value;
                     break;
                 case "TestResult.Duration":
-                    newTestResult.duration = properties.Value;
+                    newTestResult.duration = <string>properties.Value;
                     break;
                 case "TestResult.StartTime":
-                    newTestResult.startTime = new Date(properties.Value);
+                    newTestResult.startTime = new Date(<string>properties.Value);
                     break;
                 case "TestResult.EndTime":
-                    newTestResult.endTime = new Date(properties.Value);
+                    newTestResult.endTime = new Date(<string>properties.Value);
                     break;
             }
         });
@@ -357,34 +391,34 @@ export class TestModel {
         test.Properties.forEach(properties => {
             switch (properties.Key.Id) {
                 case "TestCase.FullyQualifiedName":
-                    newTest.fullyQualifiedName = properties.Value;
+                    newTest.fullyQualifiedName = <string>properties.Value;
                     break;
                 case "TestCase.ExecutorUri":
-                    newTest.executorUri = properties.Value;
+                    newTest.executorUri = <string>properties.Value;
                     break;
                 case "TestCase.Source":
-                    newTest.source = properties.Value;
+                    newTest.source = <string>properties.Value;
                     break;
                 case "TestCase.DisplayName":
-                    newTest.displayName = properties.Value;
+                    newTest.displayName = <string>properties.Value;
                     break;
                 case "MSTestDiscovererv2.IsEnabled":
-                    newTest.isEnabled = (properties.Value.toLowerCase() == "true");
+                    newTest.isEnabled = <boolean>properties.Value;
                     break;
                 case "MSTestDiscovererv2.TestClassName":
-                    newTest.testClassName = properties.Value;
+                    newTest.testClassName = <string>properties.Value;
                     break;
                 case "TestCase.LineNumber":
-                    newTest.lineNumber = parseInt(properties.Value, 10);
+                    newTest.lineNumber = parseInt(properties.Value.toString(), 10);
                     break;
                 case "TestCase.Traits":
-                    newTest.traits = properties.Value;
+                    newTest.traits = <string>properties.Value;
                     break;
                 case "TestCase.Id":
-                    newTest.id = properties.Value;
+                    newTest.id = <string>properties.Value;
                     break;
                 case "TestCase.CodeFilePath":
-                    newTest.codeFilePath = properties.Value;
+                    newTest.codeFilePath = <string>properties.Value;
                     break;
             }
         });
@@ -404,8 +438,43 @@ export class TestModel {
     public updateTestState(test: VSTestProtocol.TestCase): void {
         const newTest: Test = this.createTest(test);
         newTest.isRunning = true;
+        if(this.tests.containsKey(newTest.id)) {
+            newTest.result = this.tests.getValue(newTest.id).getResult();
+        }
         this.tests.setValue(newTest.id, newTest);
         this._onDidTestChanged.fire(newTest);
     }
 
+
+    /**
+     * Retrieve all file in the directory that match the glob configuration
+     * @param directory The base directory to lookup for the files
+     */
+    public getAllFilesInTestFolder(directory: string): Array<ISourceToDiscovery> {
+        const globPattern = `${directory}/${this.getConfig().glob}`;
+        const fileTestList = new GlobSync(globPattern, null).found;
+
+        const sourcesToDiscovery = new Array<ISourceToDiscovery>();
+
+        //fileTestList.forEach((file) => {
+            sourcesToDiscovery.push({
+                files: fileTestList,
+                runSettings: this.getRunSettings()
+            });
+        //});
+
+        return sourcesToDiscovery;
+    }
+
+    public reset() {
+        this.tests.clear();
+
+        this._onDidTestChanged.fire(null);
+    }
+
+}
+
+export interface ISourceToDiscovery {
+    files: Array<string>,
+    runSettings: string
 }

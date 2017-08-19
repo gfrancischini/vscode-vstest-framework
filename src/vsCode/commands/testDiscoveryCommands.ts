@@ -10,7 +10,7 @@ export function RegisterTestDiscoveryCommands(context: vscode.ExtensionContext) 
 export class TestDiscoveryCommands {
     private testService: VSTestServiceIDE;
     constructor(private context: vscode.ExtensionContext) {
-        this.testService = TestManager.getInstance().getTestService();
+        //this.testService = TestManager.getInstance().getTestService();
 
         //const runCommand = vscode.commands.registerCommand("vstest.execution.run",
         //    test => this.runTests([test]));

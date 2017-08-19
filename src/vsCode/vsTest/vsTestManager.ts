@@ -2,7 +2,6 @@
 import { VSTestService, VSTestServiceStatus } from "../../vsTest/vsTestService";
 import { VSTestServiceIDE } from "../vsTest/vsTestServiceIDE";
 import * as vscode from "vscode";
-import { config } from "../config";
 import { TestOutputChannel } from "../console/testOutputChannel"
 /**
  * Test Manager is too much here.. need to rethink this
@@ -42,22 +41,26 @@ export class TestManager {
     }
 
     public start() {
-        this.testService = new VSTestServiceIDE(config);
+        this.testService = new VSTestServiceIDE();
+
         this.testService.startTestRunner().then(() => {
             this.registerListener();
         });
     }
 
-    public restart() {
-        if (this.testService) {
-            this.testService.stopService().then(() => {
+    public restart(): Promise<void> {
+        return new Promise<void>((resolve, reject) => {
+            if (this.testService) {
+                this.testService.stopService().then(() => {
+                    this.start();
+                    resolve();
+                });
+            }
+            else {
                 this.start();
-            });
-        }
-        else {
-            this.start();
-        }
-
+                resolve();
+            }
+        });
     }
 
     private registerListener() {
