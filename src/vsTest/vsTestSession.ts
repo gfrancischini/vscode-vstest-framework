@@ -17,6 +17,7 @@ export class VSTestSession extends RawProtocolSession {
     private _onDidTestExecutionStatsChanged: Emitter<VSTestProtocol.TestRunStatisticsResult>;
     private _onDidTestExecutionCompleted: Emitter<VSTestProtocol.TestRunCompleteResult>;
     private _onDidTestSessionMessageReceived: Emitter<VSTestProtocol.MessageResult>;
+    private _onDidTestHostLaunched: Emitter<VSTestProtocol.TestRunnerProcessStartInfoResponse>;
 
     constructor() {
         super();
@@ -26,6 +27,11 @@ export class VSTestSession extends RawProtocolSession {
         this._onDidTestExecutionStatsChanged = new Emitter<VSTestProtocol.TestRunStatisticsResult>();
         this._onDidTestExecutionCompleted = new Emitter<VSTestProtocol.TestRunCompleteResult>();
         this._onDidTestSessionMessageReceived = new Emitter<VSTestProtocol.MessageResult>();
+        this._onDidTestHostLaunched = new Emitter<VSTestProtocol.TestRunnerProcessStartInfoResponse>();
+    }
+
+    public get onDidTestHostLaunched(): Event<VSTestProtocol.TestRunnerProcessStartInfoResponse> {
+        return this._onDidTestHostLaunched.event;
     }
 
     public get onDidTestSessionConnected(): Event<void> {
@@ -76,6 +82,8 @@ export class VSTestSession extends RawProtocolSession {
             case "TestSession.Message":
                 this._onDidTestSessionMessageReceived.fire(<VSTestProtocol.MessageResult>message.Payload);
                 break;
+            case "TestExecution.CustomTestHostLaunch":
+                this._onDidTestHostLaunched.fire(<VSTestProtocol.TestRunnerProcessStartInfoResponse>message);
             default:
                 console.log(message);
         }
@@ -98,7 +106,7 @@ export class VSTestSession extends RawProtocolSession {
     public async initialize(workspace, additionalAdapters?: Array<string>): Promise<void> {
         let portNumber = 12345; //TODO - get free port number
         portNumber = await this.findFreePort();
-        
+
         //.then((port) => {
         //    portNumber = port;
         //});
@@ -108,7 +116,7 @@ export class VSTestSession extends RawProtocolSession {
         const lib = "vstest";// "C:\\Users\\gfrancischini\\Desktop\\vstest-rel-15.3-rtm\\src\\vstest.console\\bin\\Debug\\netcoreapp2.0\\vstest";
         //const frameWork = "/Framework:FrameworkCore10";
         const processId = `/parentprocessid:${process.pid}`;
-        
+
         const port = `/port:${portNumber}`;
         const diag = `/Diag:C:\\Users\\gfrancischini\\Downloads\\Logs\\Log.txt`;
         return new Promise<void>((resolve, reject) => {
@@ -203,5 +211,37 @@ export class VSTestSession extends RawProtocolSession {
 
         this.sendProtocolMessage(versionRequest);
     }
+
+    protected onEvent({ event, message }) {
+        switch (event) {
+            case "exit":
+                this._onDidTestSessionMessageReceived.fire({ Message: message, MessageLevel: 0 });
+                break;
+            default:
+                this._onDidTestSessionMessageReceived.fire({ Message: message, MessageLevel: 0 });
+                break;
+        }
+    }
+
+    /**
+     * Run a set of tests
+     * @param sources 
+     * @param tests 
+     * @param debuggingEnabled 
+     */
+    public debugTests(sources: Array<String>, tests: Array<VSTestProtocol.TestCase>, runSettings: string, debuggingEnabled: boolean) {
+        const runTestsRequest: VSTestProtocol.TestRunnerProcessStartInfoRequest = {
+            MessageType: "TestExecution.GetTestRunnerProcessStartInfoForRunAll",
+            Payload: {
+                Sources: null,
+                TestCases: tests,
+                RunSettings: runSettings,
+                KeepAlive: false,
+                DebuggingEnabled: debuggingEnabled
+            }
+        }
+        this.sendProtocolMessage(runTestsRequest);
+    }
+
 }
 

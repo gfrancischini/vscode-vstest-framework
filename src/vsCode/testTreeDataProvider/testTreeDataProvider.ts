@@ -104,10 +104,10 @@ export class TestTreeDataProvider implements vscode.TreeDataProvider<TestTreeTyp
         const debugCommand = vscode.commands.registerCommand("vstest.execution.debugSelected",
             (item) => {
                 if (item) {
-                    this.runTests(item, true);
+                    this.debugTests(item);
                 }
                 else {
-                    this.runTests(this.selectedItem, true);
+                    this.debugTests(this.selectedItem);
                 }
             });
         context.subscriptions.push(debugCommand);
@@ -168,6 +168,33 @@ export class TestTreeDataProvider implements vscode.TreeDataProvider<TestTreeTyp
         });
     }
 
+    private _createLaunchConfiguration(program: string, args: string, cwd: string, debuggerEventsPipeName: string) {
+        let debugOptions = vscode.workspace.getConfiguration('csharp').get('unitTestDebuggingOptions');
+
+        // Get the initial set of options from the workspace setting
+        let result: any;
+        if (typeof debugOptions === "object") {
+            // clone the options object to avoid changing it
+            result = JSON.parse(JSON.stringify(debugOptions));
+        } else {
+            result = {};
+        }
+
+        if (!result.type) {
+            result.type = "coreclr";
+        }
+
+        // Now fill in the rest of the options
+        result.name = ".NET Test Launch";
+        result.request = "launch";
+        result.debuggerEventsPipeName = debuggerEventsPipeName;
+        result.program = program;
+        result.args = args;
+        result.cwd = cwd;
+
+        return result;
+    }
+
     private registerTestServiceListeners() {
         this.testService = TestManager.getInstance().getTestService();
 
@@ -178,6 +205,12 @@ export class TestTreeDataProvider implements vscode.TreeDataProvider<TestTreeTyp
                 //this.discoveryTests();
             }
         });*/
+
+        this.testService.onDidTestServiceDebugLaunchRequest((event) => {
+            const response = event.Payload;
+            const config = this._createLaunchConfiguration(response.FileName, response.Arguments, response.WorkingDirectory, null);
+            vscode.commands.executeCommand('vscode.startDebug', config)
+        });
 
 
     }
@@ -215,6 +248,20 @@ export class TestTreeDataProvider implements vscode.TreeDataProvider<TestTreeTyp
         else if (test instanceof Label) {
             this.testService.runTests((<Label>test).getChildren(), debuggingEnabled);
         }
+    }
+
+    private debugTests(test: TestTreeType): void {
+        vscode.window.showWarningMessage("Sorry, not implemented!.");
+        return;
+        /*if (!test) {
+            vscode.window.showWarningMessage("You need to select a test or a test group first.");
+        }
+        if (test instanceof Test) {
+            this.testService.debugTests([<Test>test], true);
+        }
+        else if (test instanceof Label) {
+            this.testService.debugTests((<Label>test).getChildren(), true);
+        }*/
     }
 
     private runAllTests() {

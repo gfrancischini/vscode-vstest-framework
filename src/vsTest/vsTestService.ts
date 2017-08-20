@@ -36,11 +36,14 @@ export class VSTestService {
      */
     protected _onDidTestServiceStatusChanged: Emitter<VSTestServiceStatus>;
 
+    protected _onDidTestServiceDebugLaunchRequest: Emitter<VSTestProtocol.TestRunnerProcessStartInfoResponse>;
+
     constructor(workspace: string, adapterName: string, config: IVSTestConfig) {
 
         this.updateConfiguration(adapterName, config);
 
         this._onDidTestServiceStatusChanged = new Emitter<VSTestServiceStatus>();
+        this._onDidTestServiceDebugLaunchRequest = new Emitter<VSTestProtocol.TestRunnerProcessStartInfoResponse>();
 
         this.workspace = workspace;
 
@@ -72,6 +75,11 @@ export class VSTestService {
      */
     public get onDidTestServiceStatusChanged(): Event<VSTestServiceStatus> {
         return this._onDidTestServiceStatusChanged.event;
+    }
+
+
+    public get onDidTestServiceDebugLaunchRequest(): Event<VSTestProtocol.TestRunnerProcessStartInfoResponse> {
+        return this._onDidTestServiceDebugLaunchRequest.event;
     }
 
     /**
@@ -198,5 +206,48 @@ export class VSTestService {
 
     public stopService() {
         return this.session.stopServer();
+    }
+
+    /**
+     * Run a set of tests 
+     * @param tests The set of test to run
+     * @param debuggingEnabled 
+     */
+    public debugTests(tests: Array<Test>, debuggingEnabled: boolean = false): Promise<VSTestProtocol.TestRunCompleteResult> {
+        if (!tests) {
+            return Promise.resolve(null);
+        }
+        return new Promise((resolve, reject) => {
+            try {
+                this.testModel.incrementRunTestSessionId();
+                const testCases = new Array<any>();
+                let sources = new Array<string>();
+                tests.forEach((test) => {
+                    testCases.push(test.plainObject);
+                    sources.push(test.source);
+                })
+
+                sources = sources.filter((v, i, a) => a.indexOf(v) === i);
+
+                this.session.onDidTestHostLaunched((event : VSTestProtocol.TestRunnerProcessStartInfoResponse) => {
+                    this._onDidTestServiceDebugLaunchRequest.fire(event);
+                });
+
+                this.session.debugTests(sources, testCases, this.getModel().getRunSettings(), debuggingEnabled);
+
+                this.session.onDidTestExecutionCompleted((testExecutionResults) => {
+                    if(testExecutionResults.LastRunTests) {
+                        testExecutionResults.LastRunTests.NewTestResults.forEach((testResult : VSTestProtocol.TestResult) => {
+                            this.getModel().updateTestResult(testResult);
+                        })
+                    }
+                    resolve(testExecutionResults);
+                })
+            }
+            catch (err) {
+                //this.testRunnerOutputChannel.appendLine(err.message);
+                reject();
+            }
+        });
     }
 }

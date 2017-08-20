@@ -101,7 +101,7 @@ Alpha Release
 
 ## Release Notes
 
-0.0.2 - 2017-08-19
+0.0.2 - 2017-08-20
 - Add glob/framework to settings.json
 - Add group by feature (by outcome, time and class)
 - Add command to initialize the extension

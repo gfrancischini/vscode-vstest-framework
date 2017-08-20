@@ -21,16 +21,17 @@ export abstract class RawProtocolSession {
 
     private outputStream: stream.Writable;
     private rawData: Buffer;
-    
-    private stdServer : net.Server;
+
+    private stdServer: net.Server;
 
     private binaryReader: BinaryReader;
+
     constructor() {
         this.rawData = new Buffer(0);
         this.binaryReader = new BinaryReader();
     }
 
-    protected createSocketServer(port : number) {
+    protected createSocketServer(port: number) {
         // Begin listening to stderr pipe
         this.stdServer = net.createServer((socket) => {
             this.socket = socket;
@@ -49,6 +50,8 @@ export abstract class RawProtocolSession {
     }
 
     protected abstract onProtocolMessage(message: VSTestProtocol.ProtocolMessage): void;
+
+    protected abstract onEvent({ event, message });
 
     private dispatch(body: string): void {
         try {
@@ -81,10 +84,12 @@ export abstract class RawProtocolSession {
     private onServerExit(): void {
         this.serverProcess = null;
         this.cachedInitServer = null;
+        let message: string = "Server Disconnected";
         if (!this.disconnected) {
             // this.messageService.show(severity.Error, nls.localize("debugAdapterCrash", "Debug adapter process has terminated unexpectedly"));
+            message = "Error: VSTest server crashed";
         }
-        //this.onEvent({ event: "exit", type: "event", seq: 0 });
+        this.onEvent({ event: "exit", message: message });
 
         console.log("onServerExit");
     }
@@ -96,7 +101,7 @@ export abstract class RawProtocolSession {
             this.cachedInitServer = null;
         }
 
-        
+
 
         //this.onEvent({ event: "exit", type: "event", seq: 0 });
         if (!this.serverProcess) {
@@ -116,7 +121,7 @@ export abstract class RawProtocolSession {
                         return e(err);
                     }
                 });
-                killer.on("exit",() => {
+                killer.on("exit", () => {
                     this.stdServer.close(c);
                 });
                 killer.on("error", e);
@@ -129,7 +134,7 @@ export abstract class RawProtocolSession {
         return ret;
     }
 
-    protected launchServer(launch: IAdapterExecutable, port : number, cwd): TPromise<void> {
+    protected launchServer(launch: IAdapterExecutable, port: number, cwd): TPromise<void> {
         this.createSocketServer(port);
 
         return new TPromise<void>((complete, e) => {
@@ -139,7 +144,7 @@ export abstract class RawProtocolSession {
                     "pipe", 	// stdout
                     "pipe"		// stderr
                 ],
-                cwd : cwd
+                cwd: cwd
             });
 
             this.serverProcess.on("error", (err: Error) => this.onServerError(err));

@@ -108,8 +108,8 @@ declare module VSTestProtocol {
     }
 
     export interface MessageResult {
-        Message : string,
-        MessageLevel : number,
+        Message: string,
+        MessageLevel: number,
     }
 
     export interface MessageResponse extends Request {
@@ -120,7 +120,7 @@ declare module VSTestProtocol {
 
     export interface InitializeExtensionsRequest extends Request {
         // messageType = Extensions.Initialize
-        Version : number
+        Version: number
         /**
          * List of paths of extensions
          */
@@ -135,5 +135,43 @@ declare module VSTestProtocol {
     export interface VersionResponse extends Response {
         //"MessageType": "ProtocolVersion",
         Payload: number,
+    }
+
+
+    export interface TestRunnerProcessStartInfoRequest extends Request {
+        // messageType = TestSession.GetTestRunnerProcessStartInfoForRunAll
+        Payload: {
+            Sources: Array<String>,
+            TestCases: Array<TestCase>,
+            RunSettings: string,
+            KeepAlive: boolean,
+            DebuggingEnabled: boolean
+        }
+    }
+
+    export interface TestRunnerProcessStartInfoResponse extends Response {
+        // message type = TestExecution.CustomTestHostLaunch
+        Payload: {
+            /**
+             * 	Name of the host process
+             */
+            FileName: string,
+            /**
+             * Arguments to be passed to the host process
+             */
+            Arguments: string,
+            /**
+             * Working directory for the host process
+             */
+            WorkingDirectory: string,
+            /**
+             * Environment variables associated with host process
+             */
+            EnvironmentVariables: Array<any>,
+            /**
+             * Any custom properties that need to set
+             */
+            CustomProperties: Array<any>
+        }
     }
 }
