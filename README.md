@@ -72,6 +72,8 @@ To setup your enviroment to run .NET test you must add the following configurati
 }
 ```
 
+[Tip: Check the sample project for configuration help.](https://github.com/gfrancischini/vscode-vstest-framework/tree/master/unitTestSamples/dotnetcore/vscodecsharp)
+
 Configurable options:
 
 1. "output" -> Output path where the build files are. Relative to workspace path.
