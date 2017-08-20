@@ -2,7 +2,7 @@ import Event, { Emitter } from "./base/common/Event";
 import * as Collections from "typescript-collections";
 import { IVSTestConfig } from "./vsTestConfig";
 import { GlobSync } from "glob"
-
+import * as path from "path"
 /**
  * The enumerator that describe the test outcome results
  */
@@ -228,7 +228,7 @@ export class TestModel {
 
     }
 
-    protected getRunSettings() {
+    public getRunSettings() {
         return this.defaultRunSettings;
     }
 
@@ -451,7 +451,7 @@ export class TestModel {
      * @param directory The base directory to lookup for the files
      */
     public getAllFilesInTestFolder(directory: string): Array<ISourceToDiscovery> {
-        const globPattern = `${directory}/${this.getConfig().glob}`;
+        /*const globPattern = `${directory}/${this.getConfig().glob}`;
         const fileTestList = new GlobSync(globPattern, null).found;
 
         const sourcesToDiscovery = new Array<ISourceToDiscovery>();
@@ -461,7 +461,17 @@ export class TestModel {
                 files: fileTestList,
                 runSettings: this.getRunSettings()
             });
-        //});
+        //});*/
+
+        const sourcesToDiscovery = new Array<ISourceToDiscovery>();
+        sourcesToDiscovery.push({
+            files: new Array<string>(),
+            runSettings: this.getRunSettings()
+        })
+
+        const fileName = path.join(directory, this.getConfig().output, this.getConfig().framework, this.getConfig().outputFileName);
+
+        sourcesToDiscovery[0].files.push(fileName);
 
         return sourcesToDiscovery;
     }
@@ -470,6 +480,10 @@ export class TestModel {
         this.tests.clear();
 
         this._onDidTestChanged.fire(null);
+    }
+
+    public getAdditionalTestAdapters(workspace : string) : Array<string> {
+        return null;
     }
 
 }

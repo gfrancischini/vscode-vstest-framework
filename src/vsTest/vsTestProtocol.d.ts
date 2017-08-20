@@ -43,7 +43,8 @@ declare module VSTestProtocol {
 
     export interface TestDiscoveryResult {
         TotalTests: number,
-        IsAborted: boolean
+        IsAborted: boolean,
+        LastDiscoveredTests: Array<TestCase>
     }
 
     export interface TestDiscoveryCompletedResponse extends Response {
@@ -95,7 +96,7 @@ declare module VSTestProtocol {
             AttachmentSets: Array<any>,
             ElapsedTimeInRunningTests: string
         }
-        LastRunTests: Array<any>,
+        LastRunTests: TestRunStatisticsResult,
         RunAttachments: Array<any>,
         ExecutorUris: Array<any>,
     }
@@ -119,7 +120,7 @@ declare module VSTestProtocol {
 
     export interface InitializeExtensionsRequest extends Request {
         // messageType = Extensions.Initialize
-
+        Version : number
         /**
          * List of paths of extensions
          */

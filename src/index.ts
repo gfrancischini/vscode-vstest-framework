@@ -1,7 +1,7 @@
 import { VSTestService, VSTestServiceStatus } from "./vsTest/vsTestService";
 
-
-var test = new VSTestService("dotnet", {glob : "**/bin/debug/netcoreapp1.0/vscodecsharp.dll", framework: "netcoreapp1.0"});
+const glob = {glob : "**/bin/debug/netcoreapp1.0/vscodecsharp.dll", framework: "netcoreapp1.0"};
+var test = new VSTestService("", "dotnet",  null);
 //var test = new VSTestService({glob : "*.cs"});
 //var test = new VSTestService({glob : "**/bin/debug/**/vscodecsharp.dll"});
 test.startTestRunner().then(() => {

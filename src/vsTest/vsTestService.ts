@@ -29,17 +29,20 @@ export class VSTestService {
      */
     protected session: VSTestSession;
 
+    protected workspace: string;
 
     /**
      * Event notification about service status changes
      */
     protected _onDidTestServiceStatusChanged: Emitter<VSTestServiceStatus>;
 
-    constructor(adapterName: string, config: IVSTestConfig) {
+    constructor(workspace: string, adapterName: string, config: IVSTestConfig) {
 
         this.updateConfiguration(adapterName, config);
 
         this._onDidTestServiceStatusChanged = new Emitter<VSTestServiceStatus>();
+
+        this.workspace = workspace;
 
     }
 
@@ -85,7 +88,11 @@ export class VSTestService {
         this.session = new VSTestSession();
         this.registerSessionListeners();
 
-        return this.session.initialize();
+        return this.session.initialize(this.workspace, this.getAdditionalTestAdapters());
+    }
+
+    private getAdditionalTestAdapters(): Array<string> {
+        return this.getModel().getAdditionalTestAdapters(this.workspace);
     }
 
     /**
@@ -133,6 +140,12 @@ export class VSTestService {
                 this.session.discoveryTests(sourcesToDiscovery[0].files, sourcesToDiscovery[0].runSettings);
 
                 this.session.onDidTestDiscoveryCompleted((testDiscoveryResults) => {
+                    if (testDiscoveryResults.LastDiscoveredTests) {
+                        testDiscoveryResults.LastDiscoveredTests.forEach((testCase: VSTestProtocol.TestCase) => {
+                            this.getModel().addTest(testCase);
+                        });
+                    }
+
                     resolve(testDiscoveryResults);
                 })
             }
@@ -165,9 +178,14 @@ export class VSTestService {
 
                 sources = sources.filter((v, i, a) => a.indexOf(v) === i);
 
-                this.session.runTests(sources, testCases, debuggingEnabled);
+                this.session.runTests(sources, testCases, this.getModel().getRunSettings(), debuggingEnabled);
 
                 this.session.onDidTestExecutionCompleted((testExecutionResults) => {
+                    if(testExecutionResults.LastRunTests) {
+                        testExecutionResults.LastRunTests.NewTestResults.forEach((testResult : VSTestProtocol.TestResult) => {
+                            this.getModel().updateTestResult(testResult);
+                        })
+                    }
                     resolve(testExecutionResults);
                 })
             }

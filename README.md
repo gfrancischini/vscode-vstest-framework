@@ -2,7 +2,12 @@
 
 # vscode vsTest Tools
 
+## Sections
 
+[List of Features](##Features)<br>
+[How to Configure](##How-To-Configure)
+
+## Quick Demo
 
 Discover all tests, Runs specific tests, Inspect result, Debug, Go To Test Definition.
 
@@ -10,7 +15,7 @@ Discover all tests, Runs specific tests, Inspect result, Debug, Go To Test Defin
 
 ## Features
 
-## Run tests in Test Explorer
+### Run tests in Test Explorer
 
 When the extension is enabled it will automatically open the Test Explorer. The discovered test will appear on the windows like on the image below
 
@@ -35,7 +40,7 @@ Every time a new test starts a progress indicator icon will be presented on the 
 ![Alt Text](resources/doc/testExplorerProgress.png)
 
 
-## View test results
+### View test results
 
 As you run, write, and rerun your tests, Test Explorer displays the results in groups of **Failed Tests**, **Passed Tests**, **Skipped Tests** and **Not Run Tests**. The output pane at the bottom of Test Explorer displays a summary of the test run.
 
@@ -51,26 +56,43 @@ The result will be displayed on the **output window**
 To display the source code for a test method in the Visual Studio Code editor you only need to left click the test. 
 
 
-## Group and filter the test list
+### Group and filter the test list
 Group and filter is not supported yet.
 
 
+## How To Configure
+
+To setup your enviroment to run .NET test you must add the following configuration to the files settings.json:
+
+```json
+"vstest.dotnet": {
+    "output": "bin/debug",
+    "framework": "netcoreapp1.0",
+    "outputFileName": "UnitTest.dll"
+}
+```
+
+Configurable options:
+
+1. "output" -> Output path where the build files are. Relative to workspace path.
+2. "framework" -> The framework that the test will run/be discovered.
+3. outputFileName -> Your dll/exe file name
+
+So basically, the plugin will look for workSpaceDirectory\output\**\outputFileName. All files matching this string will be send to the VSTest
+
+Available framework options:
+* netcoreapp1.0
+* netcoreapp1.1
+* netcoreapp2.0
+* Framework35
+* Framework40
+* Framework45
+* net46
+
 ## Requirements
 
-To run Mocha test you must install Mocha
-You must install [Mocha](https://mochajs.org/#installation)
-
-To run .Net Core Test you must install .Net Core 2.0
+To run .Net Core Test you must install .Net Core
 You must install [.Net Core](https://mochajs.org/#installation)
-
-### Configure the Settings:
-
-
-
-## Extension Settings
-
-
-## TODO
 
 
 ## Known Issues
@@ -79,5 +101,9 @@ Alpha Release
 
 ## Release Notes
 
-Users appreciate release notes as you update your extension.
+0.0.2 - 2017-08-19
+- Add glob/framework to settings.json
+- Add group by feature (by outcome, time and class)
+- Add command to initialize the extension
+
 

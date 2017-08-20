@@ -2,8 +2,9 @@
  * Interface with the available extension configuration
  */
 export interface IVSTestConfig {
-    glob: string, //relative glob path to test files
+    output: string, //relative output solution folder
     framework: string,
+    outputFileName : string
 }
 
 

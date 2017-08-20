@@ -6,8 +6,8 @@ import { VSTestService } from "../../vsTest/vsTestService";
 import { getConfigurationForAdatper, getCurrentAdapterName } from "../config";
 export class VSTestServiceIDE extends VSTestService {
 
-    constructor() {
-        super(getCurrentAdapterName(),getConfigurationForAdatper());
+    constructor(workspace : string) {
+        super(workspace, getCurrentAdapterName(),getConfigurationForAdatper());
     }
 
     /**
@@ -15,7 +15,7 @@ export class VSTestServiceIDE extends VSTestService {
      * @param directory The directory path do discvery the tests
      */
     public discoveryTests(directory: string) {
-        return <Promise<any>>vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: "Test Adapter" }, progress => {
+        return <Promise<VSTestProtocol.TestDiscoveryResult>>vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: "Test Adapter" }, progress => {
             progress.report({ message: "Discovering Tests" });
             return new Promise((resolve, reject) => {
                 super.discoveryTests(directory).then((result) => {

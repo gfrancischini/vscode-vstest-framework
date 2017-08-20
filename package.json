@@ -2,7 +2,7 @@
   "name": "vscode-vstest-framework",
   "displayName": "VSTest Tools Framework",
   "description": "A Visual Studio Code Extension that implements the VSTest frameworks",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "publisher": "gfrancischini",
   "icon": "resources/icon/testingicon.png",
   "repository": {
@@ -66,22 +66,42 @@
       "title": "Node Test Runner Configuration Properties.",
       "properties": {
         "vstest.dotnet": {
-          "description": "Glob pattern for search for test files.",
+          "description": ".Net Test Configuration",
           "type": "object",
           "properties": {
             "testFiles": {
               "type": "object",
-              "properties": [{
-                
-                "glob": {
-
-                },
-                "framework": {
-                  "type": "string"
+              "properties": [
+                {
+                  "output": {
+                    "description": "Output path where the build files are. Relative to workspace path.",
+                    "type": "string",
+                    "default": "bin/debug"
+                  },
+                  "framework": {
+                    "description": "Target framework to discovery and run tests.",
+                    "type": "string",
+                    "default": "netcoreapp2.0"
+                  },
+                  "outputFileName": {
+                    "description": "Name of the test output file. (eg. UnitTest.dll).",
+                    "type": "string",
+                    "default": "UnitTest.dll"
+                  }
                 }
-              }]
+              ]
             }
           }
+        },
+        "vstest.enable": {
+          "description": "Enable/Disable VSTest Explorer",
+          "type": "boolean",
+          "default": true
+        },
+        "vstest.autoInitialize": {
+          "description": "If true the test explorer will auto initialize when vscode opens",
+          "type": "boolean",
+          "default": true
         }
       }
     },
@@ -138,7 +158,8 @@
       "explorer": [
         {
           "id": "vstest.explorer.vsTestTree",
-          "name": "Test Explorer"
+          "name": "Test Explorer",
+          "when": "config.vstest.enable"
         }
       ]
     }
@@ -150,7 +171,7 @@
     "test": "node ./node_modules/vscode/bin/test"
   },
   "devDependencies": {
-    "typescript": "^2.0.3",
+    "typescript": "^2.4.2",
     "vscode": "^1.1.0"
   },
   "dependencies": {
@@ -159,6 +180,7 @@
     "@types/mocha": "^2.2.32",
     "@types/node": "^6.0.73",
     "amd-loader": "0.0.8",
+    "freeport": "^1.0.5",
     "typescript-collections": "^1.2.3"
   }
 }

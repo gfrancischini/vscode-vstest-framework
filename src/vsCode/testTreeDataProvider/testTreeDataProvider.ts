@@ -5,7 +5,7 @@ import { TestManager } from "../vsTest/vsTestManager";
 import { TestModel, Test, TestResult, TestOutcome } from "../../vsTest/vsTestModel"
 import { VSTestServiceIDE } from "../vsTest/vsTestServiceIDE"
 import { VSTestServiceStatus } from "../../vsTest/vsTestService"
-import { getConfigurationForAdatper, getCurrentAdapterName } from "../config";
+import { getConfigurationForAdatper, getCurrentAdapterName, isAutoInitializeEnabled } from "../config";
 import { GroupByFilter, GroupByQuickPickItemType } from "./groupByFilter"
 
 export function RegisterVSTestTreeProvider(context: vscode.ExtensionContext) {
@@ -135,19 +135,26 @@ export class TestTreeDataProvider implements vscode.TreeDataProvider<TestTreeTyp
         context.subscriptions.push(showTestResult);
 
         vscode.workspace.onDidChangeConfiguration(() => {
-            this.testService.updateConfiguration(getCurrentAdapterName(),getConfigurationForAdatper());
+            this.testService.updateConfiguration(getCurrentAdapterName(), getConfigurationForAdatper());
             this.registerTestModelListeners();
             this.refrehTestExplorer(null);
             this.discoveryTests();
         });
+
+        if (isAutoInitializeEnabled()) {
+            this.initialize();
+        }
     }
 
     private restart(): void {
         this.isTestExplorerInitialized = false;
-        TestManager.getInstance().restart().then(() => {
+        TestManager.getInstance().restart(vscode.workspace.rootPath).then(() => {
+            this.testService = TestManager.getInstance().getTestService();
+            this.isTestExplorerInitialized = true;
             this.registerTestServiceListeners();
             this.registerTestModelListeners();
             this.refrehTestExplorer(null);
+            this.discoveryTests();
         });
     }
 
@@ -164,15 +171,15 @@ export class TestTreeDataProvider implements vscode.TreeDataProvider<TestTreeTyp
     private registerTestServiceListeners() {
         this.testService = TestManager.getInstance().getTestService();
 
-        this.testService.onDidTestServiceStatusChanged((status) => {
+        /*this.testService.onDidTestServiceStatusChanged((status) => {
             if (status == VSTestServiceStatus.Connected) {
                 this.isTestExplorerInitialized = true;
                 this._onDidChangeTreeData.fire();
-                this.discoveryTests();
+                //this.discoveryTests();
             }
-        });
+        });*/
 
-        
+
     }
 
     private registerTestModelListeners() {
@@ -183,8 +190,16 @@ export class TestTreeDataProvider implements vscode.TreeDataProvider<TestTreeTyp
     }
 
     private initialize() {
+        // only allow to initialize if not initialized yet
+        if (this.isTestExplorerInitialized) {
+            return;
+        }
         // initilize the test manager
-        TestManager.initialize(this.context);
+        TestManager.initialize(this.context, vscode.workspace.rootPath).then(() => {
+            this.isTestExplorerInitialized = true;
+            this._onDidChangeTreeData.fire();
+            this.discoveryTests();
+        });
 
         this.registerTestServiceListeners();
         this.registerTestModelListeners();
@@ -203,11 +218,11 @@ export class TestTreeDataProvider implements vscode.TreeDataProvider<TestTreeTyp
     }
 
     private runAllTests() {
-        if(this.isTestExplorerInitialized === false) {
+        if (this.isTestExplorerInitialized === false) {
             vscode.window.showWarningMessage("You must initialize the test explore first");
         }
         const tests = this.testService.getModel().getTests()
-        if(tests.length == 0) {
+        if (tests.length == 0) {
             vscode.window.showWarningMessage("There is no test to run");
         }
         this.testService.runTests(tests);
@@ -354,7 +369,7 @@ export class TestTreeDataProvider implements vscode.TreeDataProvider<TestTreeTyp
                 return Utils.getImageResource("progress.svg");
             }
             let appendStringIcon = "";
-            if(item.getResult() && item.getResult().sessionId != this.testService.getModel().getRunTestSessionId()){
+            if (item.getResult() && item.getResult().sessionId != this.testService.getModel().getRunTestSessionId()) {
                 appendStringIcon = "_previousExec";
             }
             const outcome = item.getResult() ? item.getResult().outcome : TestOutcome.None;

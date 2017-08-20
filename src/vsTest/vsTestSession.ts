@@ -6,7 +6,7 @@ import stream = require("stream");
 import { BinaryReader } from "./binary/binaryReader";
 import { BinaryWriter } from "./binary/binaryWriter";
 import { RawProtocolSession } from "./rawProtocolSession";
-
+import * as freeport from "freeport";
 /**
  * Implements the VSTest Protocol
  */
@@ -81,24 +81,45 @@ export class VSTestSession extends RawProtocolSession {
         }
     }
 
+    public findFreePort(): Promise<number> {
+        return new Promise<number>((resolve, reject) => {
+            freeport(function (err, port) {
+                if (err) {
+                    reject(err);
+                }
+                resolve(port);
+            });
+        });
+    }
 
     /**
      * Initialize the Test Session
      */
-    public initialize(): Promise<void> {
+    public async initialize(workspace, additionalAdapters?: Array<string>): Promise<void> {
+        let portNumber = 12345; //TODO - get free port number
+        portNumber = await this.findFreePort();
+        
+        //.then((port) => {
+        //    portNumber = port;
+        //});
+
+
+
         const lib = "vstest";// "C:\\Users\\gfrancischini\\Desktop\\vstest-rel-15.3-rtm\\src\\vstest.console\\bin\\Debug\\netcoreapp2.0\\vstest";
         //const frameWork = "/Framework:FrameworkCore10";
         const processId = `/parentprocessid:${process.pid}`;
-        const portNumber = 12345; //TODO - get free port number
+        
         const port = `/port:${portNumber}`;
-        const diag = `/Diag:C:\\Users\\gfrancischini\\Downloads\\Log.txt`;
-
+        const diag = `/Diag:C:\\Users\\gfrancischini\\Downloads\\Logs\\Log.txt`;
         return new Promise<void>((resolve, reject) => {
-            this.launchServer({ command: "dotnet", args: [lib, processId, port, diag] }, portNumber).then(() => {
+            this.launchServer({ command: "dotnet", args: [lib, processId, port, diag] }, portNumber, workspace).then(() => {
                 this.onDidTestSessionConnected(() => {
+                    this.initializeExtensions(additionalAdapters);
                     this.versionRequest();
-                    this.initializeExtensions();
-                    resolve();
+                    setTimeout(function () {
+
+                        resolve();
+                    }, 5000);
                 });
             });
         });
@@ -107,13 +128,21 @@ export class VSTestSession extends RawProtocolSession {
     /**
      * Send a initialize extensions request to the test host
      */
-    public initializeExtensions() {
+    public initializeExtensions(additionalAdapters?: Array<string>) {
         var initializeExtensionsRequest: VSTestProtocol.InitializeExtensionsRequest = {
             MessageType: "Extensions.Initialize",
+            Version: 1,
             Payload: new Array<string>()
         };
 
-        initializeExtensionsRequest.Payload.push("C:\\Program Files (x86)\\Microsoft Visual Studio 14.0\\Common7\\IDE\\Extensions\\Microsoft\Node.js Tools for Visual Studio\\1.3\\Microsoft.NodejsTools.TestAdapter.dll");
+        //initializeExtensionsRequest.Payload.push("C:\\Users\\gfrancischini\\source\\repos\\vscodecsharp\\bin\\Debug\\net46\\Microsoft.VisualStudio.TestPlatform.MSTest.TestAdapter.dll");
+        //initializeExtensionsRequest.Payload.push("C:\\Program Files (x86)\\Microsoft Visual Studio 14.0\\Common7\\IDE\\Extensions\\Microsoft\Node.js Tools for Visual Studio\\1.3\\Microsoft.NodejsTools.TestAdapter.dll");
+
+        if (additionalAdapters) {
+            additionalAdapters.forEach((adatper: string) => {
+                initializeExtensionsRequest.Payload.push(adatper);
+            });
+        }
 
         this.sendProtocolMessage(initializeExtensionsRequest);
     }
@@ -124,13 +153,13 @@ export class VSTestSession extends RawProtocolSession {
      * @param tests 
      * @param debuggingEnabled 
      */
-    public runTests(sources: Array<String>, tests: Array<VSTestProtocol.TestCase>, debuggingEnabled: boolean) {
+    public runTests(sources: Array<String>, tests: Array<VSTestProtocol.TestCase>, runSettings: string, debuggingEnabled: boolean) {
         const runTestsRequest: VSTestProtocol.RunTestsRequest = {
             MessageType: "TestExecution.RunAllWithDefaultHost",
             Payload: {
                 Sources: null,
                 TestCases: tests,
-                RunSettings: null,
+                RunSettings: runSettings,
                 KeepAlive: false,
                 DebuggingEnabled: debuggingEnabled
             }

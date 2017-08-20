@@ -30,35 +30,36 @@ export class TestManager {
      * Initialize the Test Manager
      * @param context The visual studio code context
      */
-    public static initialize(context: vscode.ExtensionContext): void {
+    public static initialize(context: vscode.ExtensionContext, workspace : string): Promise<void> {
         this._instance = new TestManager(context);
+        return this._instance.start(workspace);
     }
 
     constructor(private context: vscode.ExtensionContext) {
         this.testOutputChannel = new TestOutputChannel();
-
-        this.start();
     }
 
-    public start() {
-        this.testService = new VSTestServiceIDE();
+    public start(workspace : string): Promise<void> {
+        this.testService = new VSTestServiceIDE(workspace);
 
-        this.testService.startTestRunner().then(() => {
-            this.registerListener();
+        return new Promise<void>((resolve, reject) => {
+            this.testService.startTestRunner().then(() => {
+                this.registerListener();
+                resolve();
+            });
         });
     }
 
-    public restart(): Promise<void> {
+    public restart(workspace : string): Promise<void> {
         return new Promise<void>((resolve, reject) => {
             if (this.testService) {
                 this.testService.stopService().then(() => {
-                    this.start();
+                    this.start(workspace);
                     resolve();
                 });
             }
             else {
-                this.start();
-                resolve();
+                return this.start(workspace);
             }
         });
     }

@@ -129,7 +129,7 @@ export abstract class RawProtocolSession {
         return ret;
     }
 
-    protected launchServer(launch: IAdapterExecutable, port : number): TPromise<void> {
+    protected launchServer(launch: IAdapterExecutable, port : number, cwd): TPromise<void> {
         this.createSocketServer(port);
 
         return new TPromise<void>((complete, e) => {
@@ -139,6 +139,7 @@ export abstract class RawProtocolSession {
                     "pipe", 	// stdout
                     "pipe"		// stderr
                 ],
+                cwd : cwd
             });
 
             this.serverProcess.on("error", (err: Error) => this.onServerError(err));
