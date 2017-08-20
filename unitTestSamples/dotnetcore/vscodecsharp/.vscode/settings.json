@@ -1,0 +1,7 @@
+{
+    "vstest.dotnet": {
+        "output": "bin/debug",
+        "framework": "netcoreapp1.0",
+        "outputFileName" : "vscodecsharp.dll"
+    }
+}

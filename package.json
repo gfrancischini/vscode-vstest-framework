@@ -2,7 +2,7 @@
   "name": "vscode-vstest-framework",
   "displayName": "VSTest Tools Framework",
   "description": "A Visual Studio Code Extension that implements the VSTest frameworks",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "publisher": "gfrancischini",
   "icon": "resources/icon/testingicon.png",
   "repository": {
@@ -181,6 +181,7 @@
     "@types/node": "^6.0.73",
     "amd-loader": "0.0.8",
     "freeport": "^1.0.5",
+    "glob": "^7.1.2",
     "typescript-collections": "^1.2.3"
   }
 }
