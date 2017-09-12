@@ -8,10 +8,10 @@ export class VSTestDotNetModel extends TestModel {
     constructor(config: IVSTestConfig) {
         super(config);
         //if (!config) {
-            //this.config = {
-            //    "glob": "**/*Tests.dll", 
-            //    framework: ".NETCoreApp,Version=v1.0"
-            //}
+        //this.config = {
+        //    "glob": "**/*Tests.dll", 
+        //    framework: ".NETCoreApp,Version=v1.0"
+        //}
         //}
     }
 
@@ -41,9 +41,9 @@ export class VSTestDotNetModel extends TestModel {
         return `<RunSettings><RunConfiguration><TargetFrameworkVersion>${framework}</TargetFrameworkVersion></RunConfiguration></RunSettings>`;
     }
 
-    public getAdditionalTestAdapters(workspace : string) : Array<string> {
-        const globPattern = path.join(workspace, this.config.output, "**\\**.TestAdapter.dll");
-        const files = new GlobSync(globPattern).found;
+    public getAdditionalTestAdapters(workspace: string): Array<string> {
+        const globPattern = path.join(workspace, this.config.output, "**", "**.TestAdapter.dll");
+        const files = new GlobSync(globPattern, { matchBase: true }).found;
         return files;
     }
 }

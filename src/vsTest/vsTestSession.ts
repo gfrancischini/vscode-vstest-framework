@@ -104,28 +104,17 @@ export class VSTestSession extends RawProtocolSession {
      * Initialize the Test Session
      */
     public async initialize(workspace, additionalAdapters?: Array<string>): Promise<void> {
-        let portNumber = 12345; //TODO - get free port number
-        portNumber = await this.findFreePort();
-
-        //.then((port) => {
-        //    portNumber = port;
-        //});
-
-
-
-        const lib = "vstest";// "C:\\Users\\gfrancischini\\Desktop\\vstest-rel-15.3-rtm\\src\\vstest.console\\bin\\Debug\\netcoreapp2.0\\vstest";
-        //const frameWork = "/Framework:FrameworkCore10";
+        let portNumber = await this.findFreePort();
+        const lib = "vstest";
         const processId = `/parentprocessid:${process.pid}`;
-
         const port = `/port:${portNumber}`;
-        const diag = `/Diag:C:\\Users\\gfrancischini\\Downloads\\Logs\\Log.txt`;
+        const diag = "";//`/Diag:C:\\Users\\gfrancischini\\Downloads\\Logs\\Log.txt`;
         return new Promise<void>((resolve, reject) => {
             this.launchServer({ command: "dotnet", args: [lib, processId, port, diag] }, portNumber, workspace).then(() => {
                 this.onDidTestSessionConnected(() => {
                     this.initializeExtensions(additionalAdapters);
                     this.versionRequest();
                     setTimeout(function () {
-
                         resolve();
                     }, 5000);
                 });
